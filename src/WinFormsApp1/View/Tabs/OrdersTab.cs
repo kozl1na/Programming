@@ -1,0 +1,152 @@
+﻿using ObjectOrientedPractics.Model;
+using ObjectOrientedPractics.View.Controls;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+
+namespace ObjectOrientedPractics.View.Tabs
+{
+    /// <summary>
+    /// Orders tab.
+    /// </summary>
+    public partial class OrdersTab : UserControl
+    {
+        /// <summary>
+        /// Get и set для списка покупателей.
+        /// </summary>
+        public List<Customer> Customers { get; set; } = new List<Customer>();
+
+        /// <summary>
+        /// Выбранный индекс строки в списке заказов.
+        /// </summary>
+        private int _selectedOrderIndex;
+
+
+        /// <summary>
+        /// Get и set для списка заказов.
+        /// </summary>
+        private List<Order> _orders = new List<Order>();
+
+        /// <summary>
+        /// Выбранный заказ.
+        /// </summary>
+        private Order _selectedOrder = new Order();
+
+
+        public OrdersTab()
+        {
+            InitializeComponent();
+
+        }
+
+        /// <summary>
+        /// Обновляет данные в OrdersDataGRidView.
+        /// </summary>
+        public void RefreshData()
+        {
+            OrdersDataGridView.Rows.Clear();
+            _orders = new List<Order>();
+            UpdateOrders();
+            LoadStatusComboBox();
+        }
+
+
+        /// <summary>
+        /// Обновляет заказы в DataGridView.
+        /// </summary>
+        private void UpdateOrders()
+        {
+            _orders.Clear();
+            OrdersDataGridView.Rows.Clear();
+
+            foreach (var customer in Customers)
+            {
+                var address = $"{customer.CustomerAddress.Country}, {customer.CustomerAddress.City}";
+                address += $"{customer.CustomerAddress.Street}, {customer.CustomerAddress.Building}";
+                address += $"{customer.CustomerAddress.Apartment}";
+
+                foreach (var order in customer.Orders)
+                {
+                    _orders.Add(order);
+                    OrdersDataGridView.Rows.Add(
+                        order.Id, order.Date, order.Status,
+                        customer.Fullname, order.Amount
+                        );
+                }
+            }
+        }
+
+        /// <summary>
+        /// Добавляет элементы категорий Orderstatus в StatusComboBox.
+        /// </summary>
+        private void LoadStatusComboBox()
+        {
+            StatusComboBox.Items.Clear();
+
+            foreach (var status in Enum.GetValues(typeof(OrderStatus)))
+            {
+                StatusComboBox.Items.Add(status);
+            }
+        }
+
+        /// <summary>
+        /// Заполняет список заказами.
+        /// </summary>
+        private void FillOrderItemsListBox()
+        {
+            OrderItemsListBox.Items.Clear();
+
+            foreach (Item item in _orders[_selectedOrderIndex].Items)
+            {
+                OrderItemsListBox.Items.Add(item.Name);
+            }
+        }
+
+        private void OrdersDataGridView_SelectionChanged(object sender, EventArgs e)
+        {
+            if (OrdersDataGridView.SelectedRows.Count != 0)
+            {
+                _selectedOrderIndex = OrdersDataGridView.SelectedRows[0].Index;
+                _selectedOrder = _orders[_selectedOrderIndex];
+
+                AddressControl.OurAddress = _orders[_selectedOrderIndex].Address;
+                AddressControl.SelelctedTextBoxs();
+
+                IdTextBox.Text = _selectedOrder.Id.ToString();
+                CreatedTextBox.Text = _selectedOrder.Date.ToString();
+                StatusComboBox.SelectedItem = _selectedOrder.Status;
+                TotalCostLabel.Text = _selectedOrder.Amount.ToString();
+
+                FillOrderItemsListBox();
+            }
+        }
+
+        private void StatusComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                string ourStatus = StatusComboBox.Text;
+                OrderStatus orderStatus = (OrderStatus)Enum.Parse(typeof(OrderStatus), ourStatus);
+                _selectedOrder.Status = orderStatus;
+                RefreshData();
+            }
+            catch (Exception)
+            {
+                MessageBox.Show(
+                    "Incorrect status of the order.",
+                    "Error",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error,
+                    MessageBoxDefaultButton.Button1);
+                return;
+            }
+        }
+    }
+}
